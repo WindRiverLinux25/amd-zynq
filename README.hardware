@@ -20,9 +20,7 @@ This BSP supports the following boards:
 2. Change History
 =================
 
-  - 2024/08 (LINUXPG-2279): Add BSP support for ZC702 board based on SDK v2024.01
-  - 2024/08 (LINUXPG-2280): Add BSP support for ZC706 board based on SDK v2024.01
-  - 2025/01 (LINUXEXEC-33568): Update BSP support for ZC702/ZC706 board based on SDK v2024.2
+  - 2025/09 (LINUXPG-2607): Add BSP support for ZC702/706 boards based on SDK v2025.01
 
 3. BSP Features
 ===============
@@ -96,16 +94,14 @@ For ZYNQ ZC706 board:
 	Processor:             ZYNQ XC7Z045
 	Board Revision:        HW-Z7-ZC706 REV 2.0
 	BootLoader:            U-Boot (ZC706 customized)
-	BootLoader Version:    U-Boot 2024.01
-	BOOT.BIN Version:      2024.1-zc706-release
+	BootLoader Version:    U-Boot 2025.01
 
 For ZYNQ ZC702 board:
 
 	Processor:             ZYNQ XC7Z020
 	Board Revision:        HW-Z7-ZC702 REV 1.1
 	BootLoader:            U-Boot (ZC702 customized)
-	BootLoader Version:    U-Boot 2024.01
-	BOOT.BIN Version:      2024.1-zc702-release
+	BootLoader Version:    U-Boot 2025.01
 
 4.1.2 Specify boot medium
 -------------------------
