@@ -31,7 +31,7 @@ This layer and the wrlinux layer should be added to bblayers.conf.
 
 License
 -------
-Copyright (C) 2024 Wind River Systems, Inc.
+Copyright (C) 2025 Wind River Systems, Inc.
 
 Source code included in the tree for individual recipes is under the LICENSE
 stated in the associated recipe (.bb file) unless otherwise stated.
@@ -347,9 +347,9 @@ Run the following steps to generate BOOT.BIN
 
 	$ git clone https://github.com/Xilinx/soc-prebuilt-firmware.git
 	$ cd soc-prebuilt-firmware
-	$ git checkout xlnx_rel_v2024.2
+	$ git checkout xlnx_rel_v2025.1
 	$ cd zc702-zynq
-	$ source <path_to_Vivado>/2024.2/settings64.sh
+	$ source <path_to_Vivado>/2025.1/settings64.sh
 	$ bootgen -arch zynq -image bootgen.bif -o ./BOOT.BIN -w
 
 And the BOOT.BIN can be installed into the WIC image:
@@ -387,6 +387,7 @@ CUSTOMER_RECIPES:xilinx += 'fsbl'
 CUSTOMER_RECIPES:xilinx-tools += 'external-hdf'
 CUSTOMER_RECIPES:xilinx-tools += 'bitstream-extraction'
 CUSTOMER_RECIPES:xilinx-standalone += 'fsbl-firmware'
+CUSTOMER_RECIPES:xilinx-standalone += 'embeddedsw-source'
 IMAGE_INSTALL:append = " xilinx-bootbin"
 WRL_ZYNQ_BOOTBIN_TARGET = "zc706" or WRL_ZYNQ_BOOTBIN_TARGET = "zc702"
 BB_NO_NETWORK = '0'
@@ -437,9 +438,9 @@ to change the .bit file into binary format with below commands:
 
 	$ git clone https://github.com/Xilinx/soc-prebuilt-firmware.git
 	$ cd soc-prebuilt-firmware
-	$ git checkout xlnx_rel_v2024.2
+	$ git checkout xlnx_rel_v2025.1
 	$ cd zcu702-zynq
-	$ source <path_to_Vivado>/2024.2/settings64.sh
+	$ source <path_to_Vivado>/2025.1/settings64.sh
 	$ bootgen -image Bitstream.bif -arch zynq -process_bitstream bin -o ./system.bit.bin
 
 The content of Bitstream.bif is listed as follow:
