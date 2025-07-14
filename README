@@ -80,7 +80,7 @@ Note: The preempt-rt ktype can be used with this BSP/Machine.
 To get a list of patches applied to the kernel specific to this BSP along with
 patch descriptions use git-whatchanged on the default kernel. For example:
 
-	%> cd tmp-glibc/work-shared/<bsp_name>/kernel-source
+	%> cd tmp/work-shared/<bsp_name>/kernel-source
 	%> git whatchanged <kernel_version>/standard/base..<kernel_version>/standard/<bsp_name>
 
 
@@ -98,7 +98,7 @@ following commands:
 Note: <Board Name> can be one of the ZYNQ boards' name, such as zc706, zc702.
 
 The DTB can then be found in the directory:
-  tmp-glibc/work/<bsp name>-wrs-linux-gnueabi/linux-yocto/<kernel version>/linux-<bsp name>-<kernel type>-build/arch/arm/boot/dts/
+  tmp/work/<bsp name>-wrs-linux-gnueabi/linux-yocto/<kernel version>/linux-<bsp name>-<kernel type>-build/arch/arm/boot/dts/
 
 Copy the DTB image to QSPI Flash, and use u-boot's fatload command
 to transfer it to the board before booting along with kernel image.
@@ -157,7 +157,7 @@ needed, you can burn the layout of the rest of the QSPI flash.
 You also need to modify the QSPI flash device node in the following DTB source file to
 reflect such changes:
 
-	tmp-glibc/work-shared/amd-zynq/kernel-source/arch/arm/boot/dts/zynq-<Board Name>.dts
+	tmp/work-shared/amd-zynq/kernel-source/arch/arm/boot/dts/zynq-<Board Name>.dts
 
 Then re-generate the DTB image as described above.
 
@@ -166,15 +166,15 @@ Then re-generate the DTB image as described above.
 --------------------------------------------------------
 
 	# mmcinfo
-	# fatload mmc 0 0x100000 BOOT.BIN
+	# fatload mmc 0 0x100000 boot.bin
 	# sf probe 0
 	# sf erase 0 0x100000
 	# sf write 0x100000 0 ${filesize}
 
 Before writing to flash, you need to know its current layout. You can
 get this information by running the 'cat /proc/mtd' command after booting
-from an MMC/SD device or NFS server. When loading the BOOT.BIN image from 
-the MMC/SD card, its file size will be automatically recorded in u-boot's 
+from an MMC/SD device or NFS server. When loading the boot.bin image from
+the MMC/SD card, its file size will be automatically recorded in u-boot's
 "filesize" variable, which can be leveraged later.
 
 
@@ -222,7 +222,7 @@ DTB defaults to mounting the root filesystem from the MMC/SD card.
 4.3.1 Prepare NFS and TFTP servers
 ----------------------------------
 
-The files in the above example can be found in <buildprj>/tmp-glibc/deploy/images/amd-zynq/
+The files in the above example can be found in <buildprj>/tmp/deploy/images/amd-zynq/
 and are copied to the NFS/TFTP server directory.
 
 
@@ -251,11 +251,11 @@ https://docs.yoctoproject.org/singleindex.html#creating-partitioned-images-using
 
 This BSP supports disk images for SD card.
 After building the project, user will get a WIC image under the directory
-tmp-glibc/deploy/images/<bsp name>/, such as:
+tmp/deploy/images/<bsp name>/, such as:
 
-	<path_to_your_project>/tmp-glibc/deploy/images/amd-zynq/wrlinux-image-<rootfs_type>-amd-zynq.rootfs.wic
+	<path_to_your_project>/tmp/deploy/images/amd-zynq/wrlinux-image-<rootfs_type>-amd-zynq.rootfs.wic
 
-NOTE: The WIC image built in WRLinux don't contain the bootloader BOOT.BIN
+NOTE: The WIC image built in WRLinux don't contain the bootloader boot.bin
 by default. Please refer to section 6 for the detailed description to create
 a bootable WIC image.
 
@@ -338,37 +338,37 @@ Refer to Documentation/trace/coresight.txt for more information.
 6.2 Bootloader
 --------------
 
-BOOT.BIN is the bootloader for zynq7000 boards. There are two ways to generate BOOT.BIN.
+boot.bin is the bootloader for zynq7000 boards. There are two ways to generate boot.bin.
 
-6.2.1 Generate BOOT.BIN with prebuilt firmwares
+6.2.1 Generate boot.bin with prebuilt firmwares
 -----------------------------------------------
 
-Run the following steps to generate BOOT.BIN
+Run the following steps to generate boot.bin
 
 	$ git clone https://github.com/Xilinx/soc-prebuilt-firmware.git
 	$ cd soc-prebuilt-firmware
 	$ git checkout xlnx_rel_v2025.1
 	$ cd zc702-zynq
 	$ source <path_to_Vivado>/2025.1/settings64.sh
-	$ bootgen -arch zynq -image bootgen.bif -o ./BOOT.BIN -w
+	$ bootgen -arch zynq -image bootgen.bif -o ./boot.bin -w
 
-And the BOOT.BIN can be installed into the WIC image:
+And the boot.bin can be installed into the WIC image:
 
 	$ cd path_of_project
 	$ . ./environment-setup-x86_64-wrlinuxsdk-linux
     $ . ./oe-init-build-env
     $ cat << _EOF >> conf/local.conf
-IMAGE_BOOT_FILES:append = " /< path-to-BOOT.BIN >/BOOT.BIN;BOOT.BIN"
+IMAGE_BOOT_FILES:append = " /< path-to-boot.bin >/boot.bin;boot.bin"
 _EOF
     $ bitbake wrlinux-image-std
 
 Note: For now, only the prebuilt firmwares for zc702 are provided by AMD,
 the bootloader for zc706 should be built by following the steps in 6.2.2.
 
-6.2.2 Build BOOT.BIN in WRLinux
+6.2.2 Build boot.bin in WRLinux
 -------------------------------
-Besides the above method which uses prebuilt firmwares to generate BOOT.BIN,
-WRLinux can build BOOT.BIN and create a bootable WIC image by following the
+Besides the above method which uses prebuilt firmwares to generate boot.bin,
+WRLinux can build boot.bin and create a bootable WIC image by following the
 steps as below:
 
      $ cd path_of_project
@@ -396,7 +396,7 @@ _EOF
 
 After building project, a partitioned WIC image will be created in the deploy folder as follows:
 
-  path_to_your_project/build/tmp-glibc/deploy/images/amd-zynq/wrlinux-image-<rootfs_type>-amd-zynq.wic
+  path_to_your_project/build/tmp/deploy/images/amd-zynq/wrlinux-image-<rootfs_type>-amd-zynq.wic
 
 NOTE: For now it is NOT supported that building a zc702 wic image by modifying HDF_MACHINE and YAML_DT_BOARD_FLAGS
 within an existing zc706 project, and vice versa. To build a zc702 or zc706 wic image, it is suggested that these
@@ -441,7 +441,7 @@ to change the .bit file into binary format with below commands:
 	$ git checkout xlnx_rel_v2025.1
 	$ cd zcu702-zynq
 	$ source <path_to_Vivado>/2025.1/settings64.sh
-	$ bootgen -image Bitstream.bif -arch zynq -process_bitstream bin -o ./system.bit.bin
+	$ bootgen -image Bitstream.bif -arch zynq -process_bitstream bin
 
 The content of Bitstream.bif is listed as follow:
 
@@ -465,7 +465,7 @@ We create a pl.dtsi file and its contents is listed as follow:
 			__overlay__ {
 				#address-cells = <1>;
 				#size-cells = <1>;
-				firmware-name = "system.bit.bin";
+				firmware-name = "download.bit.bin";
 			};
 		};
 	};
@@ -475,7 +475,7 @@ the pl.dtsi file as below:
 
 	$ dtc -O dtb -o pl.dtbo -b 0 -@ pl.dtsi
 
-Deploy system.bit.bin and pl.dtbo files into rootfs.
+Deploy download.bit.bin and pl.dtbo files into rootfs.
 
 6.4.3 Update FPGA bitstream file
 --------------------------------
@@ -494,7 +494,7 @@ Boot up kernel and login, then run below commands in terminal.
 
 2) Copy the Full Bitstream (.bin) and pl.dtbo files into firmware folder
 	# mkdir -p /lib/firmware
-	# cp xxx/system.bit.bin /lib/firmware/system.bit.bin
+	# cp xxx/download.bit.bin /lib/firmware/download.bit.bin
 	# cp xxx/pl.dtbo /lib/firmware/pl.dtbo
 
 3) Apply overlay DTB(pl.dtbo) to add live device nodes
@@ -512,9 +512,9 @@ Boot up kernel and login, then run below commands in terminal.
 
 	# echo 0 > /sys/class/fpga_manager/fpga0/flags
 	# mkdir -p /lib/firmware
-	# cp xxx/system.bit.bin /lib/firmware/system.bit.bin
+	# cp xxx/download.bit.bin /lib/firmware/download.bit.bin
 	# cd /lib/firmware
-	# echo system.bit.bin > /sys/class/fpga_manager/fpga0/firmware
+	# echo download.bit.bin > /sys/class/fpga_manager/fpga0/firmware
 
 6.4.4 Note
 --------
@@ -545,7 +545,7 @@ _EOF
 Once bitbake successfully, then you will find the dtb file "system.dtb" in
 the directory:
 
-	<path-of-project>/build/tmp-glibc/deploy/images/amd-zynq/system.dtb
+	<path-of-project>/build/tmp/deploy/images/amd-zynq/system.dtb
 
 NOTE: Please make sure the version of the xsct tools is in accordance with the version
 of HDF/XSA files, and there may be some unpredictable problems if using the HDF/XSA
