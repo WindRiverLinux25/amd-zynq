@@ -14,9 +14,11 @@ This layer depends on the following layers supplied with Wind River Linux:
 	meta-xilinx/meta-xilinx-bsp
 	meta-xilinx/meta-xilinx-core
 	meta-xilinx/meta-xilinx-standalone
+	meta-xilinx/meta-xilinx-standalone-sdt
+	meta-xilinx/meta-microblaze
 	meta-arm/meta-arm
 	meta-xilinx-tools
-
+	meta-amd-adaptive-socs/meta-amd-adaptive-socs-bsp
 
 Maintenance
 -----------
@@ -56,6 +58,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
+
 2. BSP Kernel and Distros
 =========================
 
@@ -87,157 +90,168 @@ patch descriptions use git-whatchanged on the default kernel. For example:
 4. Boot Instructions
 ====================
 
-It is necessary to load the DTB (device tree blob) into the target's memory
-prior to booting the kernel zImage. The DTB file can be found in the image
-directory after building a project, or you can generate it manually with the
-following commands:
+4.1 Device Trees
+----------------
+A device tree is a hierarchical data structure of named nodes and properties
+used to describe non-discoverable hardware in embedded systems, allowing
+the Linux kernel to support various configurations without hardcoding. It
+is written in text-based Device Tree Source (.dts) files, compiled into
+Device Tree Blob (.dtb) format, and passed to the operating system by the
+bootloader at runtime.
 
-	# bitbake -c devshell virtual/kernel
-	# make zynq-<Board Name>.dtb
+The Zynq-7000 boards are required to use the dtb files to boot Linux kernel.
+In this BSP, there are two types of device trees: kernel device tree and
+system device tree. They satisfy different development needs.
 
-Note: <Board Name> can be one of the ZYNQ boards' name, such as zc706, zc702.
-
-The DTB can then be found in the directory:
-  tmp/work/<bsp name>-wrs-linux-gnueabi/linux-yocto/<kernel version>/linux-<bsp name>-<kernel type>-build/arch/arm/boot/dts/
-
-Copy the DTB image to QSPI Flash, and use u-boot's fatload command
-to transfer it to the board before booting along with kernel image.
-
-
-4.1 Boot from MMC/SD card
--------------------------
-
-MMC/SD can be set as the default boot device for this board, and two
-partitions need to be created on the MMC/SD card by default. The first
-one is a boot partition while the second is root filesystem. Please refer
-to the chapter 5.2 Creating Partitioned Images(WIC) to build a WIC and run
-the following steps to create a MMC/SD card which can boot boards.
-
-Note: Refer to the README.hardware file for further details about the
-configuration for setting MMC/SD as the first boot device.
-
-4.1.1 Burn images to MMC/SD card
---------------------------------
-
-To burn WIC image to MMC/SD card, user only need to execute the below command:
-
-# dd if=wrlinux-image-std-amd-zynq.wic of=/dev/your_sd_dev
-
-4.1.2 Boot from MMC/SD card
----------------------------
-
-To boot from the MMC/SD card, use u-boot commands as follows:
-
-	# mmcinfo
-	# fatload mmc 0 0x2a00000 zynq-<Board Name>.dtb
-	# fatload mmc 0 0x3000000 zImage
-	# setenv bootargs console=ttyPS0,115200 earlyprintk root=/dev/mmcblk0p2 ro rootwait
-	# bootz 0x3000000 - 0x2a00000
-
-
-4.2 Boot kernel from QSPI Flash
--------------------------------
-
-4.2.1 QSPI Flash layout
------------------------
-
-The storage capacity of the QSPI flash on ZYNQ board is 16MB. The following
-default partitions have been created on it:
-
-	Start			End		Definition
-	0x000000		0x100000	qspi-fsbl-uboot
-	0x100000		0x600000	qspi-linux
-	0x600000		0x620000	qspi-device-tree
-	0x620000		0xc00000	qspi-rootfs
-	0xc00000		0x1000000	qspi-bitstream
-
-CAUTION: Do not burn the bootloader partition for FSBL and u-boot. If
-needed, you can burn the layout of the rest of the QSPI flash.
-
-You also need to modify the QSPI flash device node in the following DTB source file to
-reflect such changes:
-
-	tmp/work-shared/amd-zynq/kernel-source/arch/arm/boot/dts/zynq-<Board Name>.dts
-
-Then re-generate the DTB image as described above.
-
-
-4.2.2 Save bootloader image to the bootloader partitions
---------------------------------------------------------
-
-	# mmcinfo
-	# fatload mmc 0 0x100000 boot.bin
-	# sf probe 0
-	# sf erase 0 0x100000
-	# sf write 0x100000 0 ${filesize}
-
-Before writing to flash, you need to know its current layout. You can
-get this information by running the 'cat /proc/mtd' command after booting
-from an MMC/SD device or NFS server. When loading the boot.bin image from
-the MMC/SD card, its file size will be automatically recorded in u-boot's
-"filesize" variable, which can be leveraged later.
-
-
-4.2.3 Update DTB to support booting from QSPI flash
----------------------------------------------------
-
-	# mmcinfo
-	# fatload mmc 0 0x2a00000 zynq-<Board Name>.dtb
-	# sf probe 0
-	# sf erase 0x600000 0x20000
-	# sf write 0x2a00000 0x600000 ${filesize}
-
-
-4.2.4 Copy kernel image
------------------------
-
-	# mmcinfo
-	# fatload mmc 0 0x3000000 zImage
-	# sf probe 0
-	# sf erase 0x100000 0x500000
-	# sf write 0x3000000 0x100000 ${filesize}
-
-
-4.2.5 Boot the kernel image
----------------------------
-
-	# sf probe 0
-	# sf read 0x2a00000 0x600000 0x20000
-	# sf read 0x3000000 0x100000 0x500000
-	# bootz 0x3000000 - 0x2a00000
-
-
-4.2.6 Target Note
------------------
-
-Since the size of the qspi-rootfs partition is no more than 8 MB, it is too
-small to accommodate a reasonable jffs2 filesystem, which can be as large as
-60 MB.  Therefore, you cannot deploy a jffs2 filesystem on QSPI flash, and the
-DTB defaults to mounting the root filesystem from the MMC/SD card.
-
-
-4.3 NFS Root File System
+4.1.1 Kernel Device Tree
 ------------------------
+The kernel device tree files describe the hardware components of the Versal
+boards, excluding the programming logic (PL). They provide the necessary
+information for Linux to understand and interact with the hardware, enabling
+the Linux kernel to load appropriate drivers and manage resources.
 
-4.3.1 Prepare NFS and TFTP servers
-----------------------------------
+The kernel device tree source files are located in
+	<PROJECT_DIR>/build/tmp/work-shared/amd-zynq/kernel-source/arch/arm64/boot/dts/xilinx
 
-The files in the above example can be found in <buildprj>/tmp/deploy/images/amd-zynq/
-and are copied to the NFS/TFTP server directory.
+The following device tree files will be installed to the WIC image along
+with the kernel Image:
+	zynq-zc702.dtb (used for ZC702)
+	zynq-zc706.dtb (used for ZC706)
 
+Note: These device tree files are only used in prebuilt firmware flow for
+their less device nodes.
 
-4.3.2 Boot from NFS root filesystem
------------------------------------
+4.1.2 System Device Tree
+------------------------
+A system device tree comprehensively represents the entire system's
+hardware configuration. It encompasses not only the components relevant
+to the Linux operating system but also other elements that might be part
+of a multi-domain software system. The system device tree provides a
+holistic view of the hardware setup, facilitating communication and
+coordination across different software domains.
 
-To boot from an NFS image, execute use following u-boot commands:
+The process of generating a system device tree is described in the section
+"7.1.4.3 SDTGen", and it contains the following files:
 
-	# setenv ipaddr 192.168.1.10
-	# setenv serverip 192.168.1.1
-	# setenv rootpath /nfsexport
-	# setenv bootargs console=ttyPS0,115200 earlyprintk root=/dev/nfs rw nfsroot=$serverip:$rootpath ip=dhcp
-	# tftpboot 0x3000000 zImage
-	# tftpboot 0x2a00000 zynq-<Board Name>.dtb
-	# bootz 0x3000000 - 0x2a00000
+	- Files that are static for a given device family:
+		- soc.dtsi: A SOC specific file containing information about the CPU.
+		- board.dtsi: A board file copied from AMD's prebuilt board repository.
+		- clk.dtsi: Clock information for the device.
+	- Files dynamically generated based on Vivado Design Suite output:
+		- pl.dtsi: Contains Programmable Logic(soft IPs) information.
+		- system-top.dts: System information about memory, CPU clusters, aliases etc.
+		- pcw.dtsi: Information about the configuration of the processing system from
+		  the Vivado Design Suite peripheral configuration wizard.
+
+These files will eventually be compiled into one dtb file "system.dtb".
+This system.dtb will have more nodes and more properties inside each node
+compared to the kernel dtb files mentioned in the section "4.1.1 Kernel
+Device Tree".
+
+Note: Unless you are working in the prebuilt firmware flow mentioned in
+the section "7.1.2 Prebuilt Firmware", system.dtb is the only dtb file
+that you should use to boot Linux.
+
+4.2 Boot Mode
+-------------
+The Zynq-7000 boards support three boot modes: SD card, QSPI and JTAG.
+
+4.2.1 SD Boot Mode
+------------------
+First refer to the section "7.1 BOOT.BIN" to build a bootable WIC image and
+burn it to SD card at host-pc:
+
+   (build-host)$ sudo dd if=wrlinux-image-<rootfs_type>-amd-zynq.rootfs.wic of=/dev/sdaX
+
+Plug the SD card into the Zynq-7000 board SD socket and set the DIP
+switch setting like:
+
+For ZC706:
+   SW11[5]  SW11[4]  SW11[3]  SW11[2]  SW11[1]
+    OFF      ON       ON       OFF      OFF
+
+For ZC702:
+   SW16[5]  SW16[4]  SW16[3]  SW16[2]  SW16[1]
+    OFF      ON       ON       OFF      OFF
+
+Power cycle the board. The board now boots up using the BOOT.BIN in
+the SD card.
+
+4.2.2 QSPI Boot Mode
+--------------------
+First we boot the board with SD Card by following the steps in the section
+"4.2.1 SD Boot Mode". At the U-Boot stage, when the message "Hit any key to
+stop autoboot:" appears, hit any key, then run the following commands to
+burn the image to the QSPI flash:
+
+   (u-boot)> sf probe 0 0 0
+   (u-boot)> sf erase 0x0 0x4000000
+   (u-boot)> fatls mmc 0:1
+   (u-boot)> fatload mmc 0:1 0x70000000 BOOT.bin
+   (u-boot)> sf write 0x70000000 0x0 <BOOT.BIN_filesize_in_hex>
+
+Note: The "<BOOT.BIN_filesize_in_hex>" is a hexadecimal value of the size
+of BOOT.BIN.
+
+After flashing the images, turn off the power switch on the board, and
+change the boot mode pin settings to QSPI boot mode:
+
+For ZC706:
+   SW11[5]  SW11[4]  SW11[3]  SW11[2]  SW11[1]
+    OFF      ON       OFF      OFF      OFF
+
+For ZC702:
+   SW16[5]  SW16[4]  SW16[3]  SW16[2]  SW16[1]
+    OFF      ON       OFF      OFF      OFF
+
+Power cycle the board. The board now boots up using the BOOT.BIN in the
+QSPI flash.
+
+4.2.3 JTAG Boot Mode
+--------------------
+The JTAG boot mainly communicates with XSDB and it is out of the scope of
+this README. Please refer to the document Zynq-7000 SoC Technical Reference
+Manual(UG585).
+
+4.3 Boot Linux From U-Boot
+--------------------------
+This section provides examples of how to set up U-Boot to boot Linux via
+network or SD Card.
+
+4.3.1 Network
+-------------
+First, you need a host machine with the network servers TFTP and NFS
+correctly installed and configured.
+
+Then find the compressed archive rootfs file at:
+	<PROJECT_DIR>/build/tmp/deploy/images/amd-zynq/wrlinux-image-<rootfs_type>-amd-zynq.rootfs.tar.bz2
+
+Extract this file to <nfsroot_path>:
+   (build-host)$ sudo tar jxf wrlinux-image-<rootfs_type>-amd-zynq.rootfs.tar.bz2 -C <nfsroot_path>
+
+Copy the kernel and dtb file to <tftpserver_path>:
+   (build-host)$ cp uImage <tftpserver_path>
+   (build-host)$ cp system.dtb <tftpserver_path>
+
+Set the U-Boot environment variables and boot:
+   (u-boot)> setenv serverip <tftpserver_ip>; setenv ipaddr <board_ip>
+   (u-boot)> setenv bootargs console=ttyPS0,115200 earlyprintk root=/dev/nfs rw nfsroot=$serverip:<nfsroot_path> ip=dhcp
+   (u-boot)> tftpboot 0x3000000 uImage; tftpboot 0x2a00000 system.dtb; bootm 0x3000000 - 0x2a00000
+
+4.3.2 SD Card
+-------------
+When the WIC image is built in the meta-amd-adaptive-socs-bsp or SDT flow,
+the U-Boot boot script boot.scr is installed. It contains U-Boot commands
+to boot Linux from SD Card automatically. There is no need to reconfigure
+U-Boot.
+
+If the WIC image is built in the prebuilt firmware flow, execute the
+following commands to set the U-Boot environment variables and boot:
+   (u-boot)> setenv bootfile uImage; setenv fdtfile dtb-file-name.dtb; setenv loadaddr 0x3000000; setenv fdtaddr 0x2a00000;
+   (u-boot)> setenv bootargs 'console=ttyPS0,115200 earlyprintk root=/dev/mmcblk0p2 rw rootwait'
+   (u-boot)> setenv bootcmd 'fatload mmc 0:1 $loadaddr $bootfile; fatload mmc 0:1 $fdtaddr $fdtfile; bootm $loadaddr - $fdtaddr';
+   (u-boot)> saveenv; run bootcmd;
+
 
 5. WIC Notes
 ============
@@ -253,33 +267,19 @@ This BSP supports disk images for SD card.
 After building the project, user will get a WIC image under the directory
 tmp/deploy/images/<bsp name>/, such as:
 
-	<path_to_your_project>/tmp/deploy/images/amd-zynq/wrlinux-image-<rootfs_type>-amd-zynq.rootfs.wic
+	<PROJECT_DIR>/build/tmp/deploy/images/amd-zynq/wrlinux-image-<rootfs_type>-amd-zynq.rootfs.wic
 
-NOTE: The WIC image built in WRLinux don't contain the bootloader boot.bin
-by default. Please refer to section 6 for the detailed description to create
-a bootable WIC image.
+NOTE: The WIC image built in WRLinux does not contain the bootloader BOOT.BIN
+by default. Please refer to the section "7.1 BOOT.BIN" for the detailed
+description about how to create a bootable WIC image.
 
-5.1 Burn images to SD card
---------------------------
+To burn WIC image to SD card, users only need to execute the below command:
 
-To burn WIC image to SD card, user only need to execute the below command:
+	(build-host)$ sudo dd if=wrlinux-image-<rootfs_type>-amd-zynq.rootfs.wic of=/dev/your_sd_dev
 
-	# dd if=wrlinux-image-<rootfs_type>-amd-zynq.rootfs.wic of=/dev/your_sd_dev
 
-5.2 Boot the board from the WIC SD card
----------------------------------------
-
-The board can boot automatically by setting the following uboot environment variables:
-
-=> setenv bootargs console=ttyPS0,115200 earlyprintk root=/dev/mmcblk0p2 ro rootwait
-
-=> setenv bootcmd "fatload mmc 0 0x3000000 zImage;fatload mmc 0 0x2a00000 zynq-<Board Name>.dtb; \
-   bootz 0x3000000 - 0x2a00000"
-
-=> saveenv; run bootcmd;
-
-6. Features
-===========
+6. Common Features
+==================
 
 6.1 Coresight
 -------------
@@ -335,12 +335,34 @@ root@QZ706:~#
 
 Refer to Documentation/trace/coresight.txt for more information.
 
-6.2 Bootloader
---------------
+6.2 kexec and kdump
+-------------------
 
+You need to add feature/kexec support as follow:
+
+	./wrlinux-x/setup.sh --machines amd-zynq --templates feature/kexec,feature/kdump
+
+6.2.1 kexec
+-----------
+
+	kexec -l  /boot/zImage --append="`cat /proc/cmdline`"
+	kexec -e
+
+6.2.2 kdump
+-----------
+
+Add crashkernel=256M@128M to the kernel cmdline
+   kexec -p /boot/zImage --append="$your-bootcmd"
+   echo c > /proc/sysrq-trigger
+
+7. Xilinx Specific Features
+===========================
+
+7.1 BOOT.BIN
+------------
 boot.bin is the bootloader for zynq7000 boards. There are two ways to generate boot.bin.
 
-6.2.1 Generate boot.bin with prebuilt firmwares
+7.1.1 Generate boot.bin with prebuilt firmwares
 -----------------------------------------------
 
 Run the following steps to generate boot.bin
@@ -365,7 +387,7 @@ _EOF
 Note: For now, only the prebuilt firmwares for zc702 are provided by AMD,
 the bootloader for zc706 should be built by following the steps in 6.2.2.
 
-6.2.2 Build boot.bin in WRLinux
+7.1.2 Build boot.bin in WRLinux
 -------------------------------
 Besides the above method which uses prebuilt firmwares to generate boot.bin,
 WRLinux can build boot.bin and create a bootable WIC image by following the
@@ -402,27 +424,7 @@ NOTE: For now it is NOT supported that building a zc702 wic image by modifying H
 within an existing zc706 project, and vice versa. To build a zc702 or zc706 wic image, it is suggested that these
 wic images are separately built in different projects.
 
-6.3 kexec and kdump
--------------------
-
-You need to add feature/kexec support as follow:
-
-	./wrlinux-x/setup.sh --machines amd-zynq --templates feature/kexec,feature/kdump
-
-6.3.1 kexec
------------
-
-	kexec -l  /boot/zImage --append="`cat /proc/cmdline`"
-	kexec -e
-
-6.3.2 kdump
------------
-
-Add crashkernel=256M@128M to the kernel cmdline
-   kexec -p /boot/zImage --append="$your-bootcmd"
-   echo c > /proc/sysrq-trigger
-
-6.4 FPGA Bitstream File Update
+7.2 FPGA Bitstream File Update
 ------------------------------
 
 On amd-zynq platforms, customer is able to update their own FPGA design image
@@ -430,7 +432,7 @@ from linux side in running time. Here is an example of PL programming from linux
 using the Linux FPGA Manager framework. In this example, we will program a prebuilt
 bitstream file "download.bit" into FPGA.
 
-6.4.1 Generate Bitstream Binary file
+7.2.1 Generate Bitstream Binary file
 ------------------------------------
 
 Because amd-zynq platform only supports binary format for updating FPGA, it is needed
@@ -450,7 +452,7 @@ The content of Bitstream.bif is listed as follow:
 		download.bit	/* Bitstream file name */
 	}
 
-6.4.2 Generate Device Tree Overlay (DTO)
+7.2.2 Generate Device Tree Overlay (DTO)
 ----------------------------------------
 
 We create a pl.dtsi file and its contents is listed as follow:
@@ -477,14 +479,14 @@ the pl.dtsi file as below:
 
 Deploy download.bit.bin and pl.dtbo files into rootfs.
 
-6.4.3 Update FPGA bitstream file
+7.2.3 Update FPGA bitstream file
 --------------------------------
 
 There are two ways to program the bitstream file:
 	- using Device Tree Overlay
 	- using sysfs interface
 
-6.4.3.1 Update FPGA by using Device Tree Overlay
+7.2.3.1 Update FPGA by using Device Tree Overlay
 ------------------------------------------------
 
 Boot up kernel and login, then run below commands in terminal.
@@ -505,7 +507,7 @@ Boot up kernel and login, then run below commands in terminal.
 4) Steps to remove device nodes
 	# rmdir /sys/kernel/config/device-tree/overlays/system
 
-6.4.3.2 Update FPGA by using sysfs interface
+7.2.3.2 Update FPGA by using sysfs interface
 --------------------------------------------
 
 Boot up kernel and login, then run below commands in terminal.
@@ -516,14 +518,14 @@ Boot up kernel and login, then run below commands in terminal.
 	# cd /lib/firmware
 	# echo download.bit.bin > /sys/class/fpga_manager/fpga0/firmware
 
-6.4.4 Note
+7.2.4 Note
 --------
 If customer wants to enable new peripherals that reside in the new FPGA bitstream from linux side,
 overlay solution is able to implement the requirement. Detail description, please refer to below link.
 https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841645/Solution+Zynq+PL+Programming+With+FPGA+Manager
 
 
-6.5 Generate dtb based on HDF/XSA
+7.3 Generate dtb based on HDF/XSA
 ---------------------------------
 Firstly, set BB_NO_NETWORK as '0' in <path-of-project>/build/conf/local.conf file.
 Then following the steps as below to generate the dtb files based on the HDF/XSA files:
