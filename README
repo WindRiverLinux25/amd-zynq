@@ -785,131 +785,87 @@ the following commands:
 After re-running the gen-machineconf command, do not forget to reconfigure
 WORKFLOW_MACHINE_NAME in conf/local.conf.
 
-7.2 FPGA Bitstream File Update
-------------------------------
+7.2 Device Tree Overlay
+-----------------------
+The Device Tree Overlay(DTO) is used to add the child nodes and the fragments
+from the .dtbo file to the base device tree, then triggering drivers to be
+probed after PL programming. So the dtbo file for PL needs to be installed
+to rootfs along with PL firmwares (including Bitstream or PDI).
 
-On amd-zynq platforms, customer is able to update their own FPGA design image
-from linux side in running time. Here is an example of PL programming from linux
-using the Linux FPGA Manager framework. In this example, we will program a prebuilt
-bitstream file "download.bit" into FPGA.
+The recipe "zynq-fw-demo" in the amd-zynq BSP layer is designed to
+generate the dtbo file in WRLinux by utilizing the bbclass "dfx_user_dts".
+For a more detailed description of "dfx_user_dts", please see
+	https://github.com/Xilinx/meta-xilinx/blob/rel-v2025.2/docs/README.dfx.user.dts.md
 
-7.2.1 Generate Bitstream Binary file
-------------------------------------
+After running the steps in the section "7.1.4 SDT Flow", execute the
+following commands:
 
-Because amd-zynq platform only supports binary format for updating FPGA, it is needed
-to change the .bit file into binary format with below commands:
-
-	$ git clone https://github.com/Xilinx/soc-prebuilt-firmware.git
-	$ cd soc-prebuilt-firmware
-	$ git checkout xlnx_rel_v2025.1
-	$ cd zcu702-zynq
-	$ source <path_to_Vivado>/2025.1/settings64.sh
-	$ bootgen -image Bitstream.bif -arch zynq -process_bitstream bin
-
-The content of Bitstream.bif is listed as follow:
-
-	all:
-	{
-		download.bit	/* Bitstream file name */
-	}
-
-7.2.2 Generate Device Tree Overlay (DTO)
-----------------------------------------
-
-We create a pl.dtsi file and its contents is listed as follow:
-
-	// pl.dtsi overlay dts file.
-	/dts-v1/;
-	/plugin/;
-
-	/ {
-		fragment@0 {
-			target = <&fpga_full>;
-			__overlay__ {
-				#address-cells = <1>;
-				#size-cells = <1>;
-				firmware-name = "download.bit.bin";
-			};
-		};
-	};
-
-Then we generate Device Tree Overlay Blob (.dtbo) file from
-the pl.dtsi file as below:
-
-	$ dtc -O dtb -o pl.dtbo -b 0 -@ pl.dtsi
-
-Deploy download.bit.bin and pl.dtbo files into rootfs.
-
-7.2.3 Update FPGA bitstream file
---------------------------------
-
-There are two ways to program the bitstream file:
-	- using Device Tree Overlay
-	- using sysfs interface
-
-7.2.3.1 Update FPGA by using Device Tree Overlay
-------------------------------------------------
-
-Boot up kernel and login, then run below commands in terminal.
-
-1) Set flags for Full Bitstream.
-	# echo 0 > /sys/class/fpga_manager/fpga0/flags
-
-2) Copy the Full Bitstream (.bin) and pl.dtbo files into firmware folder
-	# mkdir -p /lib/firmware
-	# cp xxx/download.bit.bin /lib/firmware/download.bit.bin
-	# cp xxx/pl.dtbo /lib/firmware/pl.dtbo
-
-3) Apply overlay DTB(pl.dtbo) to add live device nodes
-	# mkdir /sys/kernel/config/device-tree/overlays/system
-	# cd /lib/firmware/
-	# echo pl.dtbo > /sys/kernel/config/device-tree/overlays/system/path
-
-4) Steps to remove device nodes
-	# rmdir /sys/kernel/config/device-tree/overlays/system
-
-7.2.3.2 Update FPGA by using sysfs interface
---------------------------------------------
-
-Boot up kernel and login, then run below commands in terminal.
-
-	# echo 0 > /sys/class/fpga_manager/fpga0/flags
-	# mkdir -p /lib/firmware
-	# cp xxx/download.bit.bin /lib/firmware/download.bit.bin
-	# cd /lib/firmware
-	# echo download.bit.bin > /sys/class/fpga_manager/fpga0/firmware
-
-7.2.4 Note
---------
-If customer wants to enable new peripherals that reside in the new FPGA bitstream from linux side,
-overlay solution is able to implement the requirement. Detail description, please refer to below link.
-https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841645/Solution+Zynq+PL+Programming+With+FPGA+Manager
-
-
-7.3 Generate dtb based on HDF/XSA
----------------------------------
-Firstly, set BB_NO_NETWORK as '0' in <path-of-project>/build/conf/local.conf file.
-Then following the steps as below to generate the dtb files based on the HDF/XSA files:
-
-     $ cd path_of_project
-     $ . ./environment-setup-x86_64-wrlinuxsdk-linux
-     $ . ./oe-init-build-env
-     $ cat << _EOF >> conf/local.conf
-CUSTOMER_RECIPES:xilinx += 'python3-dtc'
-CUSTOMER_RECIPES:xilinx-tools += 'external-hdf'
-CUSTOMER_RECIPES:xilinx += 'device-tree'
-CUSTOMER_RECIPES:xilinx-tools += 'xsct'
-HDF_BASE = "file://"
-HDF_PATH = "/< path-to-hdf >/system.xsa"
-HDF_MACHINE = "zc706-zynq7" or HDF_MACHINE = "zc702-zynq7"
+	(build-host)$ cd <PROJECT_DIR>; . ./environment-setup-x86_64-wrlinuxsdk-linux; . ./oe-init-build-env
+	(build-host)$ cp conf/dts/<your_workflow_machine_name>/pl-overlay-full/pl.dtsi <PROJECT_DIR>/layers/amd-zynq/recipes-firmware/zynq-fw-demo/files
+	(build-host)$ cp hw-description/<your_workflow_machine_name>/<path_to_bit>/<proj>.bit <PROJECT_DIR>/layers/amd-zynq/recipes-firmware/zynq-fw-demo/files
+	(build-host)$ cat << _EOF >> conf/local.conf
+IMAGE_INSTALL:append = " zynq-fw-demo"
+CUSTOMER_RECIPES:wr-amd-zynq += 'zynq-fw-demo'
+FW_DEMO_FILES:pn-zynq-fw-demo = "pl.dtsi <proj>.bit"
 _EOF
-     $ bitbake device-tree
+	(build-host)$ bitbake wrlinux-image-std
 
-Once bitbake successfully, then you will find the dtb file "system.dtb" in
-the directory:
+The dtbo and bitstream files can be found at the boards:
+	root@amd-zynq:~# ls -l /lib/firmware/xilinx/zynq-fw-demo/zynq-fw-demo.*
+	-rw-r--r-- 1 root root    3825 Apr  5  2011 /lib/firmware/xilinx/zynq-fw-demo/zynq-fw-demo.dtbo
+	-rw-r--r-- 1 root root 1423280 Apr  5  2011 /lib/firmware/xilinx/zynq-fw-demo/zynq-fw-demo.bin
 
-	<path-of-project>/build/tmp/deploy/images/amd-zynq/system.dtb
+These files can be used to program PL by following the instructions in
+the section "7.3 PL Programming".
 
-NOTE: Please make sure the version of the xsct tools is in accordance with the version
-of HDF/XSA files, and there may be some unpredictable problems if using the HDF/XSA
-files of older versions.
+7.3 PL Programming
+------------------
+There are 3 methods to program PL from the Linux side:
+    - sysfs
+    - configfs
+    - fpgautil
+
+For a more detailed description of PL programming, please see
+	https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841847/Solution+ZynqMP+PL+Programming
+
+7.3.1 Sysfs
+-----------
+Run the following commands to program PL via sysfs:
+
+	root@amd-zynq:~# echo 0 > /sys/class/fpga_manager/fpga0/flags
+	root@amd-zynq:~# mkdir -p /lib/firmware
+	root@amd-zynq:~# cp <path_to_bin/proj.bin> /lib/firmware/
+	root@amd-zynq:~# echo proj.bin > /sys/class/fpga_manager/fpga0/firmware
+
+Note: The sysfs method only supports the PL programming without dtbo.
+
+7.3.2 Configfs
+--------------
+Run the following commands to program PL via configfs:
+
+	root@amd-zynq:~# echo 0 > /sys/class/fpga_manager/fpga0/flags
+	root@amd-zynq:~# mkdir -p /lib/firmware
+	root@amd-zynq:~# cp <path_to_bin/proj.bin> /lib/firmware/
+	root@amd-zynq:~# cp <path_to_dtbo/pl.dtbo> /lib/firmware/
+	root@amd-zynq:~# mkdir /sys/kernel/config/device-tree/overlays/system
+	root@amd-zynq:~# cd /lib/firmware/
+	root@amd-zynq:~# echo pl.dtbo > /sys/kernel/config/device-tree/overlays/system/path
+
+Steps to remove the drivers that were added as part of DTO:
+
+	root@amd-zynq:~# rmdir /sys/kernel/config/device-tree/overlays/system
+
+7.3.3 Fpgautil
+--------------
+The fpgautil tool provides a user-friendly interface for loading,
+reconfiguring and reading FPGA bitstream configurations. Follow
+the steps to install this tool on WRLinux:
+
+	(build-host)$ cd <PROJECT_DIR>; . ./environment-setup-x86_64-wrlinuxsdk-linux; . ./oe-init-build-env
+	(build-host)$ cat << _EOF >> conf/local.conf
+CUSTOMER_RECIPES:xilinx += 'fpga-manager-script'
+IMAGE_INSTALL:append = " fpga-manager-script"
+_EOF
+
+Run the following commands to program PL via fpgautil:
+    root@amd-zynq:~# fpgautil -b <path_to_bin/proj.bin> -o <path_to_dtbo/pl.dtbo>
