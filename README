@@ -1,10 +1,11 @@
-AMD ZYNQ Board Support Package
+	AMD ZYNQ-7000 Boards
+
 
 1. About this document
 ======================
 
-This document provides common and non-hardware specific information.
-Please refer to README.hardware for hardware specific information.
+This document provides common and non-hardware-specific information.
+Please refer to the README.hardware for hardware specific information.
 
 Dependencies
 ------------
@@ -26,14 +27,13 @@ This layer is maintained by Wind River Systems, Inc.
 Contact <support@windriver.com> or your support representative for more
 information on submitting changes.
 
-
 Building the amd-zynq layer
-------------------------------
+---------------------------
 This layer and the wrlinux layer should be added to bblayers.conf.
 
 License
 -------
-Copyright (C) 2025 Wind River Systems, Inc.
+Copyright (C) 2026 Wind River Systems, Inc.
 
 Source code included in the tree for individual recipes is under the LICENSE
 stated in the associated recipe (.bb file) unless otherwise stated.
@@ -71,20 +71,20 @@ The following table summarizes the valid Wind River Linux distros for this BSP.
   |    valid     |      Y      |        N         |         N         |       N      |
   +--------------+-------------+------------------+-------------------+--------------+
 
-For the supported kernel type for this BSP, please check the TARGET_SUPPORTED_KTYPES
-by running 'bitbake -e virtual/kernel | grep "^TARGET_SUPPORTED_KTYPES="'.
+For the supported kernel type for this BSP, check the TARGET_SUPPORTED_KTYPES
+by running 'bitbake -e | grep "^TARGET_SUPPORTED_KTYPES"'.
 
-Note: The preempt-rt ktype can be used with this BSP/Machine.
+Note: The preempt-rt kernel type can be used with this BSP/Machine.
 
 
 3. Board Specific Patches
 =========================
 
 To get a list of patches applied to the kernel specific to this BSP along with
-patch descriptions use git-whatchanged on the default kernel. For example:
+patch descriptions, use git-whatchanged on the default kernel. For example:
 
-	%> cd tmp/work-shared/<bsp_name>/kernel-source
-	%> git whatchanged <kernel_version>/standard/base..<kernel_version>/standard/<bsp_name>
+	(build-host)$ cd <PROJECT_DIR>/build/tmp/work-shared/<bsp_name>/kernel-source
+	(build-host)$ git whatchanged <kernel_version>/standard/base..<kernel_version>/standard/<bsp_name>
 
 
 4. Boot Instructions
@@ -256,7 +256,7 @@ following commands to set the U-Boot environment variables and boot:
 5. WIC Notes
 ============
 
-User can use the OpenEmbedded Image Creator to create the properly partitioned
+Users can use the OpenEmbedded Image Creator to create the properly partitioned
 image on a SD card. It generates partitioned images from existing OpenEmbedded
 build artifacts. Please refer to the following URL for more detailed partition
 information about WIC:
@@ -264,12 +264,12 @@ information about WIC:
 https://docs.yoctoproject.org/singleindex.html#creating-partitioned-images-using-wic
 
 This BSP supports disk images for SD card.
-After building the project, user will get a WIC image under the directory
+After building the project, users will get a WIC image under the directory
 tmp/deploy/images/<bsp name>/, such as:
 
 	<PROJECT_DIR>/build/tmp/deploy/images/amd-zynq/wrlinux-image-<rootfs_type>-amd-zynq.rootfs.wic
 
-NOTE: The WIC image built in WRLinux does not contain the bootloader BOOT.BIN
+Note: The WIC image built in WRLinux does not contain the bootloader BOOT.BIN
 by default. Please refer to the section "7.1 BOOT.BIN" for the detailed
 description about how to create a bootable WIC image.
 
