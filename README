@@ -684,6 +684,7 @@ CUSTOMER_RECIPES:xilinx += 'python3-anytree'
 CUSTOMER_RECIPES:xilinx += 'xilinx-lops'
 CUSTOMER_RECIPES:xilinx-standalone += 'esw-conf'
 CUSTOMER_RECIPES:xilinx-standalone += 'embeddedsw-source'
+BB_NO_NETWORK = '0'
 _EOF
 	(build-host)$ export PATH=$PATH:<PROJECT_DIR>/layers/meta-xilinx/gen-machine-conf/
 
@@ -733,7 +734,6 @@ After running the steps in the section "7.1.4.4 gen-machineconf", run the
 following steps to build a WRLinux image:
 
 	(build-host)$ cat << _EOF >> conf/local.conf
-BB_NO_NETWORK = '0'
 WORKFLOW_MACHINE_NAME = "<workflow_machine_name>"
 WRL_ZYNQ_BOOTBIN_TARGET = "zc702"
 DISTRO_FEATURES:append = " xilinx-bootloader"
