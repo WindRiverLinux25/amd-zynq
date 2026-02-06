@@ -235,7 +235,7 @@ Copy the kernel and dtb file to <tftpserver_path>:
 
 Set the U-Boot environment variables and boot:
    (u-boot)> setenv serverip <tftpserver_ip>; setenv ipaddr <board_ip>
-   (u-boot)> setenv bootargs console=ttyPS0,115200 earlyprintk root=/dev/nfs rw nfsroot=$serverip:<nfsroot_path> ip=dhcp
+   (u-boot)> setenv bootargs console=ttyPS0,115200 earlycon root=/dev/nfs rw nfsroot=$serverip:<nfsroot_path> ip=dhcp
    (u-boot)> tftpboot 0x3000000 uImage; tftpboot 0x2a00000 system.dtb; bootm 0x3000000 - 0x2a00000
 
 4.3.2 SD Card
@@ -248,7 +248,7 @@ U-Boot.
 If the WIC image is built in the prebuilt firmware flow, execute the
 following commands to set the U-Boot environment variables and boot:
    (u-boot)> setenv bootfile uImage; setenv fdtfile dtb-file-name.dtb; setenv loadaddr 0x3000000; setenv fdtaddr 0x2a00000;
-   (u-boot)> setenv bootargs 'console=ttyPS0,115200 earlyprintk root=/dev/mmcblk0p2 rw rootwait'
+   (u-boot)> setenv bootargs 'console=ttyPS0,115200 earlycon root=/dev/mmcblk0p2 rw rootwait'
    (u-boot)> setenv bootcmd 'fatload mmc 0:1 $loadaddr $bootfile; fatload mmc 0:1 $fdtaddr $fdtfile; bootm $loadaddr - $fdtaddr';
    (u-boot)> saveenv; run bootcmd;
 
@@ -322,9 +322,9 @@ root@QZ706:/sys/bus/coresight/devices/etm0# cd ../etb0
 root@amd-zynq:/sys/bus/coresight/devices/etb0# ls mgmt/
 ctl  ffcr  ffsr  rdp  rrp  rwp  sts  trg
 root@amd-zynq:/sys/bus/coresight/devices/etb0# cat mgmt/rwp
-0x188				<--- changed everytime when cat mgmt/rwp
+0x188				<--- changed every time when cat mgmt/rwp
 root@amd-zynq:/sys/bus/coresight/devices/etb0# cat mgmt/rwp
-0x1ee				<--- changed everytime when cat mgmt/rwp
+0x1ee				<--- changed every time when cat mgmt/rwp
 root@QZ706:~# cd
 root@QZ706:~# dd if=/dev/etb0 of=etb
 dd if=/dev/f8801000.etb of=etb
@@ -456,7 +456,7 @@ Note: The prebuilt firmware flow is only for zc702.
 ------------------------------------------------------
 7.1.3.1 ZC706 with meta-xilinx-tools
 ------------------------------------
-This section is only for the ZC706 board because ZC706 has NOT be
+This section is only for the ZC706 board because ZC706 has NOT been
 transitioned from meta-xilinx-tools to meta-amd-adaptive-socs-bsp.
 
 WRLinux can build BOOT.BIN and create a bootable WIC image for ZC706 by
@@ -526,7 +526,7 @@ The following is the meta-amd-adaptive-socs-bsp flow diagram:
 
 						Figure 3 Meta-amd-adaptive-socs-bsp Flow
 
-Use the following commands to build BOOT.BIN for the VCK190 board:
+Use the following commands to build BOOT.BIN for the ZC702 board:
 
 	(build-host)$ cd <PROJECT_DIR>; . ./environment-setup-x86_64-wrlinuxsdk-linux; . ./oe-init-build-env
 	(build-host)$ cat << _EOF >> conf/local.conf
@@ -699,7 +699,7 @@ and files will be generated under <PROJECT_DIR>/build:
 	conf/machine/<workflow_machine_name>.conf
 	conf/machine/include/<workflow_machine_name>/
 	conf/dts/<workflow_machine_name>/
-	hw-description/<workflow_machine_name>/
+	hw-description/
 	output/<workflow_machine_name>/
 
 You may observe the output below telling you to set "MACHINE" during
