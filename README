@@ -185,10 +185,10 @@ stop autoboot:" appears, hit any key, then run the following commands to
 burn the image to the QSPI flash:
 
    (u-boot)> sf probe 0 0 0
-   (u-boot)> sf erase 0x0 0x4000000
+   (u-boot)> sf erase 0x0 0x1000000
    (u-boot)> fatls mmc 0:1
-   (u-boot)> fatload mmc 0:1 0x70000000 BOOT.bin
-   (u-boot)> sf write 0x70000000 0x0 <BOOT.BIN_filesize_in_hex>
+   (u-boot)> fatload mmc 0:1 0x100000 BOOT.bin
+   (u-boot)> sf write 0x100000 0x0 <BOOT.BIN_filesize_in_hex>
 
 Note: The "<BOOT.BIN_filesize_in_hex>" is a hexadecimal value of the size
 of BOOT.BIN.
